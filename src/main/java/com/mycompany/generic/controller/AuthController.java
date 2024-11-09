@@ -6,12 +6,10 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import com.mycompany.generic.constant.ERole;
-import com.mycompany.generic.dto.JwtResponseDTO;
-import com.mycompany.generic.dto.LoginRequestDTO;
-import com.mycompany.generic.dto.MessageResponseDTO;
-import com.mycompany.generic.dto.SignupRequestDTO;
+import com.mycompany.generic.dto.*;
 import com.mycompany.generic.entity.RoleEntity;
 import com.mycompany.generic.entity.UserEntity;
+import com.mycompany.generic.exception.BusinessException;
 import com.mycompany.generic.repository.RoleRepository;
 import com.mycompany.generic.repository.UserRepository;
 import com.mycompany.generic.service.JwtServiceImpl;
@@ -19,6 +17,7 @@ import com.mycompany.generic.service.UserDetailsImpl;
 import jakarta.validation.Valid;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -63,18 +62,22 @@ public class AuthController {
 
         return ResponseEntity.ok(new JwtResponseDTO(jwt,
                 userDetails.getId(),
-                userDetails.getEmail(),
                 userDetails.getFirstName(),
                 userDetails.getLastName(),
+                userDetails.getEmail(),
                 roles));
     }
 
     @PostMapping("/signup")
     public ResponseEntity<?> registerUser(@Valid @RequestBody SignupRequestDTO signUpRequest) {
         if (userRepository.existsByEmail(signUpRequest.getEmail())) {
-            return ResponseEntity
-                    .badRequest()
-                    .body(new MessageResponseDTO("Error: Email is already taken!"));
+//            return ResponseEntity
+//                    .badRequest()
+//                    .body(new MessageResponseDTO("Error: Email is already taken!"));
+            ErrorDTO err = new ErrorDTO();
+            err.setCode("AUTH_005");
+            err.setMessage("Email is already taken!");
+            throw new BusinessException(List.of(err));
         }
         // Create new user's account
         UserEntity user = new UserEntity();
@@ -122,7 +125,7 @@ public class AuthController {
         user.setRoles(roles);
         userRepository.save(user);
 
-        return ResponseEntity.ok(new MessageResponseDTO("User registered successfully!"));
+        return new ResponseEntity(new MessageResponseDTO("User registered successfully!"), HttpStatus.CREATED);
     }
 
 }
